@@ -1,0 +1,68 @@
+import torch
+from transformers import (AutoProcessor, 
+                          AutoModelForCausalLM,
+                          AutoModelForVision2Seq,
+                         ) 
+from transformers import BitsAndBytesConfig
+from huggingface_hub import login
+from peft import (
+    LoraConfig,
+    PeftModel,
+    prepare_model_for_kbit_training,
+    get_peft_model
+)
+import bitsandbytes as bnb
+import loralib as lora
+from accelerate import PartialState
+# device_string = PartialState().process_index
+def find_all_linear_names(model):
+    cls = bnb.nn.Linear4bit
+    lora_module_names = set()
+    for name, module in model.named_modules():
+        if isinstance(module, cls):
+            names = name.split('.')
+            lora_module_names.add(names[0] if len(names) == 1 else names[-1])
+    if 'lm_head' in lora_module_names:  # needed for 16 bit
+        lora_module_names.remove('lm_head')
+    return list(lora_module_names)
+
+
+def getLoraModel(model):
+   # Define LoRA Config
+   peft_config = LoraConfig(
+       task_type="CAUSAL_LM",
+       inference_mode=False,
+       r=256,
+       lora_alpha=128,
+       lora_dropout=0.05,
+       bias='none',
+    #    target_modules=['q_proj', 'v_proj']
+       target_modules='all-linear'
+   )
+   # add LoRA adaptor
+   model.enable_input_require_grads()
+   model = get_peft_model(model, peft_config)
+   lora.mark_only_lora_as_trainable(model)
+   model.print_trainable_parameters()
+   return model
+
+def get_model(device_string=None):
+    # login(token ="xxx")
+    model_path = "/mnt/isilon/wang_lab/shared/Llama3.2-vision"
+    if device_string is not None:
+        model = AutoModelForVision2Seq.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        # attn_implementation = "flash_attention_2"
+        device_map={'':device_string}
+        )
+        model = getLoraModel(model)
+    else:
+        model = AutoModelForVision2Seq.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        # attn_implementation = "flash_attention_2"
+        )
+        model = getLoraModel(model)
+    return model, model_path
+
