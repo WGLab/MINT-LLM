@@ -3,6 +3,6 @@ The scarcity of high-quality multimodal biomedical data limits the ability to ef
 
 **Note**:  
 - Due to **privacy restrictions**, the GMDB dataset used in this study **cannot be publicly released**.  
-- The training was performed on a **SLURM-managed HPC cluster** using **4×A100 80GB GPUs**, which makes the current implementation **incompatible with interactive platforms like CodeOcean**.  
+- The training was performed on a **SLURM-managed HPC cluster** using **4×A100 80GB GPUs**.  
 - We will continue to **update the GitHub repository** to provide scripts and documentation for HPC-based deployment.  
 - Additionally, we **provide pretrained model weights** for immediate evaluation and reproducibility.
