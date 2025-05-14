@@ -6,6 +6,4 @@ accelerate==0.34.2
 wandb==0.18.5
 peft==0.13.0
 bitsandbytes==0.44.1      
-# or use:
-# git+https://github.com/TimDettmers/bitsandbytes.git@e6cc109#egg=bitsandbytes
 loralib
