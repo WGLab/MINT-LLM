@@ -7,5 +7,5 @@ The scarcity of high-quality multimodal biomedical data limits the ability to ef
 - We will continue to **update the GitHub repository** to provide scripts and documentation for HPC-based deployment.  
 - Additionally, we **provide pretrained model weights** for immediate evaluation and reproducibility.
 
-Reference:
+Arxiv Preprint:
 [Wu, D., Wang, Z., Nguyen, Q., Xu, Z., Wang, K., Multimodal Integrated Knowledge Transfer to Large Language Models through Preference Optimization with Biomedical Applications, arXiv: 2505.05736](https://arxiv.org/abs/2505.05736)
