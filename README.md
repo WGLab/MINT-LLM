@@ -13,8 +13,7 @@ ArXiv link: https://arxiv.org/abs/2505.05736
 - Due to privacy and compliance restrictions, the GMDB dataset used in the paper is **not publicly released**.
 - This repository provides training/inference scripts and pretrained checkpoints for reproducibility-oriented experiments.
 - Some scripts were originally developed for internal HPC paths and are being progressively refactored into path-configurable public workflows.
-- Phenopacket-derived clinical notes path (branch snapshot): https://github.com/WGLab/MINT-LLM/tree/codex/organize-public-version-for-clarity
-
+- Phenopacket-derived clinical notes path: https://github.com/WGLab/CoT-RAG-LLM-Gene-Prioritization-Disease-Diagnosis/tree/main/dataset
 ---
 
 ## Repository Structure
