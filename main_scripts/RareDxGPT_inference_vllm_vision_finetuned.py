@@ -6,6 +6,7 @@ import random
 import time
 import json
 import argparse
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,14 +24,15 @@ from datasets import load_from_disk, load_dataset
 import wandb
 from peft import AutoPeftModelForCausalLM, PeftModel, PeftConfig
 import sys
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/utils'))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from disease_gene_convert import *
 from set_seed import *
 from util_llama3_70b import *
 from huggingface_hub import login
 from disease_list_extract import *
 from external_analysis_util import *
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/AutoEvaluator'))
+sys.path.append(str(PROJECT_ROOT / "AutoEvaluator"))
 from AutoEvaluator import *
 from EvaluatorProcessor import *
 import pandas as pd
@@ -110,7 +112,11 @@ def main():
     print(peft_model_id)
     # dist.init_process_group(backend="nccl", init_method="env://")
     set_seed(args.seed)
-    login(token ="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")
+    hf_token = os.getenv("HF_TOKEN")
+    if hf_token:
+        login(token=hf_token)
+    else:
+        print("HF token not provided; continuing without explicit login.")
     os.environ['HF_HOME'] = '/tmp'
     # peft_model_id = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"  # "unsloth/Llama-3.3-70B-Instruct"
     number_gpus = 1
