@@ -4,6 +4,7 @@ import re
 import random
 import copy
 import argparse
+from pathlib import Path
 import sys
 import torch
 import torch.nn as nn
@@ -27,7 +28,8 @@ from peft import PeftModel
 from trl import apply_chat_template, DPOConfig, DPOTrainer, setup_chat_format
 import wandb
 from accelerate import PartialState
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/utils'))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from set_seed import *
 from util_llama32_vision import *
 from PIL import Image

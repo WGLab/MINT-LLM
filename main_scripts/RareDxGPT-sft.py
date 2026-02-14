@@ -3,6 +3,7 @@ import os
 import re
 import random
 import argparse
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,7 +29,8 @@ import wandb
 import random
 from accelerate import PartialState
 import sys
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/utils'))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from set_seed import *
 from util_gemma_9b import *
 def parse_args():

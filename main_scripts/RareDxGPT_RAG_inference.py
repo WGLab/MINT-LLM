@@ -3,6 +3,7 @@ import os
 import re
 import random
 import argparse
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -21,12 +22,13 @@ import wandb
 from accelerate import PartialState
 from peft import AutoPeftModelForCausalLM
 import sys
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/utils'))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from set_seed import *
 from util_llama3 import *
 from disease_list_extract import *
 from external_analysis_util import *
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/AutoEvaluator'))
+sys.path.append(str(PROJECT_ROOT / "AutoEvaluator"))
 from AutoEvaluator import *
 from EvaluatorProcessor import *
 import pandas as pd
@@ -131,7 +133,11 @@ def create_rag_index(data_dir):
 def main():
     args = parse_args()
     set_seed(args.seed)
-    login(token ="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")
+    hf_token = os.getenv("HF_TOKEN")
+    if hf_token:
+        login(token=hf_token)
+    else:
+        print("HF token not provided; continuing without explicit login.")
     os.environ['HF_HOME'] = '/tmp'
     # Model Setup
     peft_model_id = os.path.join("/home/wangz12/projects", args.peft_model_id)
