@@ -7,6 +7,29 @@ import pandas as pd
 import safetensors.torch
 import torch
 from datasets import load_dataset, load_from_disk
+from pathlib import Path
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
+import subprocess
+from transformers import (AutoTokenizer,
+                         AutoModelForCausalLM,
+                         pipeline
+                        )
+from datasets import load_from_disk, load_dataset
+import wandb
+from peft import AutoPeftModelForCausalLM, PeftModel, PeftConfig
+import sys
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
+from disease_gene_convert import *
+from set_seed import *
+from util_llama3_70b import *
 from huggingface_hub import login
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from vllm import LLM, SamplingParams
@@ -71,6 +94,68 @@ def parse_args():
 def loading_dataset(project_root: Path):
     reference_dir = project_root / "reference_data"
     datasets_dir = project_root / "datasets"
+    
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=8,
+                        help="Batch size for training"
+                        )
+    
+    parser.add_argument("--ratio",
+                        type=float,
+                        default=0.3,
+                        help="Train test split ratio"
+                        )
+
+    parser.add_argument("--seed",
+                        type=int,
+                        default=42,
+                        help="Random seed for train test split")
+
+    parser.add_argument("--disease",
+                        type=str,
+                        default='bws',
+                        help='Disease name for external dataset')
+
+    parser.add_argument("--peft_model_id",
+                        type=str,
+                        default="x")
+
+    parser.add_argument(
+        "--project_root",
+        type=str,
+        default=str(Path(__file__).resolve().parents[1]),
+        help="Repository root path used to resolve datasets and reference files",
+    )
+
+    parser.add_argument(
+        "--base_model_path",
+        type=str,
+        default="/mnt/isilon/wang_lab/shared/LLaMA3.2-3B-Instruct",
+        help="Local or HF base model path used by vLLM",
+    )
+
+    parser.add_argument(
+        "--hf_token",
+        type=str,
+        default=None,
+        help="Optional Hugging Face token. If not provided, uses HF_TOKEN env var.",
+    )
+    return parser.parse_args()
+
+
+def loading_dataset(tokenizer, project_root):
+    # Your existing loading_dataset function
+    reference_dir = project_root / "reference_data"
+    datasets_dir = project_root / "datasets"
+    total_train = load_dataset("csv", data_files=str(reference_dir / "total_train.csv"))
+    disease_name = pd.read_csv(reference_dir / "disease_name_full.csv")
+    disease_name = list(disease_name.Name)
+    reference_list = disease_name
+    full_dataset = total_train['train']
+    test_dataset_dict = load_from_disk(str(datasets_dir / "orpo_dpo_dataset_cask10_10"))
+    # test_dataset_dict = test_dataset_dict.remove_columns('image_id')
+    test_dataset = test_dataset_dict['test']
 
     total_train = load_dataset("csv", data_files=str(reference_dir / "total_train.csv"))
     disease_name = pd.read_csv(reference_dir / "disease_name_full.csv")
@@ -135,6 +220,12 @@ def main():
     peft_model_id = str((project_root / args.peft_model_id).resolve())
     set_seed(args.seed)
 
+    os.environ['HF_HOME'] = '/tmp'
+    peft_model_id = str((project_root / args.peft_model_id).resolve())
+    model_path = args.base_model_path
+    print(peft_model_id)
+    # dist.init_process_group(backend="nccl", init_method="env://")
+    set_seed(args.seed)
     hf_token = args.hf_token or os.getenv("HF_TOKEN")
     if hf_token:
         login(token=hf_token)
@@ -145,6 +236,16 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(peft_model_id)
 
     _, _, reference_list = loading_dataset(project_root)
+    os.environ['HF_HOME'] = '/tmp'
+    # peft_model_id = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"  # "unsloth/Llama-3.3-70B-Instruct"
+    number_gpus = 1
+    sampling_params = SamplingParams(temperature=0.8,top_p=0.8, top_k=10, max_tokens=512)
+    tokenizer = AutoTokenizer.from_pretrained(peft_model_id)
+    # model.gradient_checkpointing_enable()
+    print("checkpoint")
+    # Load dataset
+    # test_dataset, ground_truth_list, reference_list = loading_dataset(tokenizer)#
+    _, _, reference_list = loading_dataset(tokenizer, project_root)
     test_dataset = load_from_disk(str(project_root / "datasets" / args.disease))
     test_dataset = test_dataset.rename_column("original_text", "clinical_note")
     test_dataset = test_dataset.rename_column("response", "disease")
