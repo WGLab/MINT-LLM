@@ -3,6 +3,7 @@ import os
 import re
 import random
 import argparse
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -30,12 +31,13 @@ import random
 from accelerate import PartialState
 from peft import AutoPeftModelForCausalLM, PeftModel, AutoPeftModel, PeftConfig
 import sys
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/utils'))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from set_seed import *
 from util_llama32_vision import *
 from disease_list_extract import *
 from external_analysis_util import *
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/AutoEvaluator'))
+sys.path.append(str(PROJECT_ROOT / "AutoEvaluator"))
 from AutoEvaluator import *
 from EvaluatorProcessor import *
 import pandas as pd

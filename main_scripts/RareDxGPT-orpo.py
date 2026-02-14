@@ -3,6 +3,7 @@ import os
 import re
 import random
 import argparse
+from pathlib import Path
 import sys
 import torch
 import torch.nn as nn
@@ -22,7 +23,8 @@ from datasets import load_from_disk
 from trl import apply_chat_template, DPOConfig, DPOTrainer, ORPOConfig, ORPOTrainer,setup_chat_format
 import wandb
 from accelerate import PartialState
-sys.path.append(os.path.abspath("/code/utils"))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from set_seed import *
 from util_llama3_3b import *
 def parse_args():

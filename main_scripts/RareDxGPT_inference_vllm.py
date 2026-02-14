@@ -6,6 +6,7 @@ import random
 import time
 import json
 import argparse
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,14 +24,15 @@ from datasets import load_from_disk, load_dataset
 import wandb
 from peft import AutoPeftModelForCausalLM, PeftModel, PeftConfig
 import sys
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/utils'))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "utils"))
 from disease_gene_convert import *
 from set_seed import *
 from util_llama3_70b import *
 from huggingface_hub import login
 from disease_list_extract import *
 from external_analysis_util import *
-sys.path.append(os.path.abspath('/home/wangz12/projects/RareDxGPT/AutoEvaluator'))
+sys.path.append(str(PROJECT_ROOT / "AutoEvaluator"))
 from AutoEvaluator import *
 from EvaluatorProcessor import *
 import pandas as pd
@@ -70,17 +72,40 @@ def parse_args():
     parser.add_argument("--peft_model_id",
                         type=str,
                         default="x")
+
+    parser.add_argument(
+        "--project_root",
+        type=str,
+        default=str(Path(__file__).resolve().parents[1]),
+        help="Repository root path used to resolve datasets and reference files",
+    )
+
+    parser.add_argument(
+        "--base_model_path",
+        type=str,
+        default="/mnt/isilon/wang_lab/shared/LLaMA3.2-3B-Instruct",
+        help="Local or HF base model path used by vLLM",
+    )
+
+    parser.add_argument(
+        "--hf_token",
+        type=str,
+        default=None,
+        help="Optional Hugging Face token. If not provided, uses HF_TOKEN env var.",
+    )
     return parser.parse_args()
 
 
-def loading_dataset(tokenizer):
+def loading_dataset(tokenizer, project_root):
     # Your existing loading_dataset function
-    total_train = load_dataset("csv", data_files="/home/wangz12/projects/RareDxGPT/reference_data/total_train.csv")
-    disease_name = pd.read_csv("/home/wangz12/projects/RareDxGPT/reference_data/disease_name_full.csv")
+    reference_dir = project_root / "reference_data"
+    datasets_dir = project_root / "datasets"
+    total_train = load_dataset("csv", data_files=str(reference_dir / "total_train.csv"))
+    disease_name = pd.read_csv(reference_dir / "disease_name_full.csv")
     disease_name = list(disease_name.Name)
     reference_list = disease_name
     full_dataset = total_train['train']
-    test_dataset_dict = load_from_disk("/home/wangz12/projects/RareDxGPT/datasets/orpo_dpo_dataset_cask10_10")
+    test_dataset_dict = load_from_disk(str(datasets_dir / "orpo_dpo_dataset_cask10_10"))
     # test_dataset_dict = test_dataset_dict.remove_columns('image_id')
     test_dataset = test_dataset_dict['test']
 
@@ -102,15 +127,18 @@ def main():
     # init_cuda()
     sys.stdout = open(sys.stdout.fileno(), mode='w', buffering=1)
     args = parse_args()
+    project_root = Path(args.project_root).resolve()
     os.environ['HF_HOME'] = '/tmp'
-    parent_path = "/home/wangz12/projects"
-    child_path = args.peft_model_id
-    peft_model_id = os.path.join(parent_path, child_path)
-    model_path = "/mnt/isilon/wang_lab/shared/LLaMA3.2-3B-Instruct"
+    peft_model_id = str((project_root / args.peft_model_id).resolve())
+    model_path = args.base_model_path
     print(peft_model_id)
     # dist.init_process_group(backend="nccl", init_method="env://")
     set_seed(args.seed)
-    login(token ="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")
+    hf_token = args.hf_token or os.getenv("HF_TOKEN")
+    if hf_token:
+        login(token=hf_token)
+    else:
+        print("HF token not provided; continuing without explicit login.")
     os.environ['HF_HOME'] = '/tmp'
     # peft_model_id = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"  # "unsloth/Llama-3.3-70B-Instruct"
     number_gpus = 1
@@ -120,8 +148,8 @@ def main():
     print("checkpoint")
     # Load dataset
     # test_dataset, ground_truth_list, reference_list = loading_dataset(tokenizer)#
-    _, _, reference_list = loading_dataset(tokenizer)
-    test_dataset = load_from_disk(f"/home/wangz12/projects/RareDxGPT/datasets/{args.disease}")
+    _, _, reference_list = loading_dataset(tokenizer, project_root)
+    test_dataset = load_from_disk(str(project_root / "datasets" / args.disease))
     test_dataset = test_dataset.rename_column("original_text", "clinical_note")
     test_dataset = test_dataset.rename_column("response", "disease")
     # test_dataset = test_dataset.rename_column("Response", "response")
