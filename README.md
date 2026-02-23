@@ -2,7 +2,7 @@
 
 Official codebase for **MINT (Multimodal Integrated kNowledge Transfer)** from the paper:
 
-> Wu, D., Wang, Z., Nguyen, Q., Xu, Z., Wang, K., *Multimodal Integrated Knowledge Transfer to Large Language Models through Preference Optimization with Biomedical Applications*. arXiv:2505.05736
+> Wang, Z., Wu D., Nguyen, Q., Xu, Z., Wang, K., *Multimodal Integrated Knowledge Transfer to Large Language Models through Preference Optimization with Biomedical Applications*. arXiv:2505.05736
 
 ArXiv link: https://arxiv.org/abs/2505.05736
 
